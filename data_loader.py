@@ -2,95 +2,67 @@ import yfinance as yf
 import pandas as pd
 
 
-def _normalize_index(df: pd.DataFrame) -> pd.DataFrame:
-    """Ensure DatetimeIndex is tz-naive (fixes tz-naive vs tz-aware concat/sort errors)."""
-    if df is None or df.empty:
-        return df
-
-    df = df.copy()
-
-    if not isinstance(df.index, pd.DatetimeIndex):
-        df.index = pd.to_datetime(df.index, errors="coerce")
-
-    # If tz-aware -> convert to UTC then drop tz
-    try:
-        if getattr(df.index, "tz", None) is not None:
-            df.index = df.index.tz_convert("UTC").tz_localize(None)
-    except Exception:
-        # Fallback: try to drop tz
-        try:
-            df.index = df.index.tz_localize(None)
-        except Exception:
-            pass
-
-    df = df[~df.index.isna()]
-    return df
-
-
-def _normalize_columns(df: pd.DataFrame) -> pd.DataFrame:
+def _flatten_columns(cols):
     """
-    yfinance kann Spalten als MultiIndex/tuples liefern, z.B. ('Close','^GDAXI').
-    Wir flatten IMMER auf open/high/low/close/volume.
+    yfinance can return MultiIndex columns (tuples). Flatten them safely.
     """
-    if df is None or df.empty:
-        return df
-
-    # MultiIndex -> first level
-    if isinstance(df.columns, pd.MultiIndex):
-        df.columns = [str(c[0]).lower() for c in df.columns]
-    else:
-        cols = []
-        for c in df.columns:
-            if isinstance(c, tuple):
-                cols.append(str(c[0]).lower())
-            else:
-                cols.append(str(c).lower())
-        df.columns = cols
-
-    rename_map = {"adj close": "close"}
-    df = df.rename(columns=rename_map)
-    return df
+    out = []
+    for c in cols:
+        if isinstance(c, tuple):
+            # take first non-empty element
+            c2 = next((x for x in c if x not in (None, "", " ")), c[0])
+            out.append(str(c2).lower())
+        else:
+            out.append(str(c).lower())
+    return out
 
 
-def load_market_data(ticker: str, cfg=None) -> pd.DataFrame:
+def load_market_data(ticker, cfg=None):
     print(f"Loading market data for {ticker}")
 
+    # Daily data (safe default for backtest AND forecast)
+    df_daily = yf.download(
+        ticker,
+        period="10y",
+        interval="1d",
+        auto_adjust=True,
+        progress=False,
+        threads=False
+    )
+
+    # Intraday data for live forecast (optional)
     df_intraday = yf.download(
         ticker,
         period="5d",
         interval="1h",
         auto_adjust=True,
         progress=False,
-        threads=False,
-        group_by="column",
+        threads=False
     )
 
-    df_daily = yf.download(
-        ticker,
-        period="1y",
-        interval="1d",
-        auto_adjust=True,
-        progress=False,
-        threads=False,
-        group_by="column",
-    )
+    if df_daily.empty and df_intraday.empty:
+        raise ValueError(f"No data returned for {ticker}")
 
-    if (df_intraday is None or df_intraday.empty) and (df_daily is None or df_daily.empty):
-        raise ValueError(f"No data for {ticker}")
+    # Combine + sort safely
+    df = pd.concat([df_daily, df_intraday], axis=0)
 
-    # IMPORTANT: normalize timezone BEFORE concatenation / sorting
-    df_intraday = _normalize_index(df_intraday)
-    df_daily = _normalize_index(df_daily)
+    # Normalize datetime index to avoid tz-aware vs tz-naive sorting errors
+    # -> always utc aware then convert to naive
+    df.index = pd.to_datetime(df.index, utc=True).tz_convert(None)
 
-    df_intraday = _normalize_columns(df_intraday)
-    df_daily = _normalize_columns(df_daily)
+    df = df[~df.index.duplicated(keep="last")].sort_index()
 
-    df = pd.concat([df_daily, df_intraday]).sort_index()
-    df = df[~df.index.duplicated(keep="last")]
+    # Normalize column names
+    df.columns = _flatten_columns(df.columns)
 
-    required = {"open", "high", "low", "close"}
-    missing = required - set(df.columns)
-    if missing:
-        raise KeyError(f"{ticker}: Missing columns {missing}. Got columns: {list(df.columns)}")
+    # Ensure we have "close"
+    # (auto_adjust=True gives close, sometimes adj close)
+    if "close" not in df.columns:
+        if "adj close" in df.columns:
+            df["close"] = df["adj close"]
+        elif "price" in df.columns:
+            df["close"] = df["price"]
+        else:
+            raise KeyError(f"'close' not found in columns: {df.columns.tolist()}")
 
     return df

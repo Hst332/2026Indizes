@@ -2,13 +2,16 @@ name: Daily Index Forecast Engine
 
 on:
   schedule:
-    - cron: '0 5 * * 1-5'
+    # 07:30 Europe/Vienna = 06:30 UTC (CET, Winterzeit)
+    - cron: '30 6 * * 1-5'
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   forecast:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -18,34 +21,21 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Detect project directory
-        id: proj
-        run: |
-          if [ -d "Indizes-main" ]; then
-            echo "dir=Indizes-main" >> $GITHUB_OUTPUT
-          else
-            echo "dir=." >> $GITHUB_OUTPUT
-          fi
-          echo "Using dir=$(cat $GITHUB_OUTPUT | tail -n 1)"
-
       - name: Install dependencies
         run: |
-          cd "${{ steps.proj.outputs.dir }}"
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
       - name: Run index forecasts
         env:
-          PYTHONPATH: ${{ github.workspace }}/${{ steps.proj.outputs.dir }}
+          PYTHONPATH: ${{ github.workspace }}
         run: |
-          cd "${{ steps.proj.outputs.dir }}"
           python main.py
 
       - name: Commit forecast results
         run: |
-          cd "${{ steps.proj.outputs.dir }}"
           git config --global user.name "index-forecast-bot"
           git config --global user.email "bot@index-forecast.ai"
-          git add index_forecast.txt forecasts/*.csv .gitignore || true
+          git add index_forecast.txt forecasts/*.csv forecasts/*.txt .gitignore || true
           git commit -m "Daily index forecast" || echo "No changes to commit"
           git push

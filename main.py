@@ -72,10 +72,15 @@ def main() -> None:
     csv_path = "forecasts/daily_index_forecast.csv"
     df.to_csv(csv_path, index=False)
     print("Saved:", csv_path)
+    from forecast_tracker import append_history, validate_yesterday
 
     # TXT
     write_index_forecast_txt(df, "index_forecast.txt")
     print("Saved: index_forecast.txt")
+    
+    run_ts_utc = datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
+    append_history(df, run_ts_utc)
+    validate_yesterday(df, run_ts_utc)
 
 
 if __name__ == "__main__":

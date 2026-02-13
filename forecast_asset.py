@@ -1,59 +1,101 @@
-from __future__ import annotations
-
+import yfinance as yf
 import pandas as pd
-from data_loader import load_market_data
-from model_core import run_model
-from decision_engine import generate_signal
-from regime_adjustment import adjust_for_regime
+
+from model_core import model_score
+from forecast_utils import forecast_trend
+from decision_engine import decide
+from signal_guard import guard_dataframe
 
 
-def forecast_asset(asset_name, asset_cfg, df_override=None):
+ASSETS = [
+    ("GOLD", "GC=F", "STRONG_SUPPORT"),
+    ("SILVER", "SI=F", "NO_SUPPORT"),
+    ("NATURAL GAS", "NG=F", "STRONG_SUPPORT"),
+    ("COPPER", "HG=F", "STRONG_SUPPORT"),
+]
 
-    # Daten laden
-    if df_override is not None:
-        df = df_override
-    else:
-        df = load_market_data(asset_cfg["ticker"], asset_cfg)
 
-    # Spalten absichern
-    df.columns = [c.lower() for c in df.columns]
+def _normalize_yfinance_df(df: pd.DataFrame) -> pd.DataFrame:
+    if isinstance(df.columns, pd.MultiIndex):
+        df.columns = df.columns.get_level_values(0)
+    return df
 
-    if "close" not in df.columns:
-        raise KeyError("close column missing")
 
-    # Modell
-    model_output = run_model(df)
-    regime = adjust_for_regime(df)
-    decision = generate_signal(model_output, regime)
+def _last_scalar(df, col):
+    v = df[col].iloc[-1]
+    if isinstance(v, pd.Series):
+        v = v.dropna().iloc[0] if not v.dropna().empty else v.iloc[0]
+    return float(v)
 
-    latest_close = float(df["close"].iloc[-1])
-    prev_close = float(df["close"].iloc[-2])
-    daily_return = (latest_close / prev_close) - 1
 
-    prob_up = float(decision.get("prob_up", 0.5))
-    prob_down = 1.0 - prob_up
+def forecast_asset(asset, ticker, macro_bias):
 
-    # === Data Freshness ===
-    latest_ts = df.index[-1]
+    df = yf.download(ticker, period="6mo", interval="1d", progress=False)
+    df = _normalize_yfinance_df(df)
 
-    if isinstance(latest_ts, pd.Timestamp):
-        if latest_ts.tzinfo is not None:
-            latest_ts = latest_ts.tz_convert("UTC").tz_localize(None)
+    guard = guard_dataframe(asset, df)
 
-    now_utc = pd.Timestamp.utcnow().tz_localize(None)
-    data_age_minutes = (now_utc - pd.Timestamp(latest_ts)).total_seconds() / 60.0
+    if not guard.data_ok:
+        return {
+            "asset": asset,
+            "close": None,
+            "score": 0.0,
+            "signal": "NO_TRADE",
+            "f_1_5": 0.0,
+            "f_2_3": 0.0,
+            "gpt_1_5d": "NA",
+            "gpt_2_3w": "NA",
+            "final": "NO_TRADE(DATA)",
+            "zusatzinfo": guard.reason,
+            **guard.to_dict()
+        }
+
+    close = round(_last_scalar(df, "Close"), 1)
+
+    score = model_score(df)
+    f_1_5 = forecast_trend(df, days=5)
+    f_2_3 = forecast_trend(df, days=15)
+
+    decision = decide(
+        asset=asset,
+        score=score,
+        signal_1_5d=f_1_5,
+        signal_2_3w=f_2_3,
+        macro_bias=macro_bias
+    )
 
     return {
-        "asset": asset_name,
-        "signal": decision["signal"],
-        "confidence": float(decision["confidence"]),
-        "prob_up": round(prob_up, 4),
-        "prob_down": round(prob_down, 4),
-        "regime": regime,
-        "close": round(latest_close, 2),
-        "prev_close": round(prev_close, 2),
-        "daily_return": round(daily_return * 100, 2),
-        "score": round(float(model_output.get("score", 0.0)), 4),
-        "data_timestamp": str(latest_ts),
-        "data_age_min": round(float(data_age_minutes), 1),
+        "asset": asset,
+        "close": close,
+        "score": score,
+        "signal": decision["rule_signal"],
+        "f_1_5": f_1_5,
+        "f_2_3": f_2_3,
+        "gpt_1_5d": decision["gpt_1_5d"],
+        "gpt_2_3w": decision["gpt_2_3w"],
+        "final": decision["action"],
+        "zusatzinfo": decision["zusatzinfo"],
+        **guard.to_dict()
     }
+
+
+def run_all():
+    results = []
+    for asset, ticker, macro_bias in ASSETS:
+        try:
+            results.append(forecast_asset(asset, ticker, macro_bias))
+        except Exception as e:
+            results.append({
+                "asset": asset,
+                "close": None,
+                "score": 0.0,
+                "signal": "NO_TRADE",
+                "f_1_5": 0.0,
+                "f_2_3": 0.0,
+                "gpt_1_5d": "NA",
+                "gpt_2_3w": "NA",
+                "final": "NO_TRADE(ERROR)",
+                "zusatzinfo": str(e),
+                "data_ok": False
+            })
+    return results

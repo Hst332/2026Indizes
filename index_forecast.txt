@@ -1,51 +1,32 @@
-Index Forecasts – 2026-02-13 19:11 UTC
+Index Forecasts – 2026-02-14 08:25 UTC
 ==============================================================================================================
 
 Index    | Prev Close | Current | Δ %    | Signal | Conf | Regime   | ProbUp | Rule
---------------------------------------------------------------------------------------------------------------
-DAX      |   24897.76 | 24903.35 |   0.02% | HOLD   | 0.05 | neutral  |  0.53 | M1:neutral_zone
-ATX      |    5604.43 | 5615.97 |   0.21% | BUY    | 0.30 | neutral  |  0.65 | M1:prob_up>=0.58+M2:trend_ok+M3:atr_ok(0.86%)+M4:cooldown_ok(|ret|=0.21%)
-DOW      |   49669.98 | 49651.03 |  -0.04% | HOLD   | 0.05 | neutral  |  0.53 | M1:neutral_zone
-NASDAQ   |   22697.64 | 22694.27 |  -0.01% | HOLD   | 0.08 | neutral  |  0.54 | M1:neutral_zone
-SP500    |    6871.82 | 6869.78 |  -0.03% | HOLD   | 0.05 | neutral  |  0.52 | M1:neutral_zone
-NIKKEI   |   56942.69 | 57074.99 |   0.23% | HOLD   | 0.03 | neutral  |  0.52 | M1:neutral_zone
+-----------------------------------------------------------------------------------
+DAX      |  24897.76 | 24903.35 |  0.02% | HOLD   | 0.05 | neutral  |  0.53 | 
+ATX      |   5604.43 | 5615.97 |  0.21% | BUY    | 0.30 | neutral  |  0.65 | 
+DOW      |  49404.44 | 49499.42 |  0.19% | HOLD   | 0.05 | neutral  |  0.52 | 
+NASDAQ   |  22516.24 | 22550.57 |  0.15% | HOLD   | 0.09 | neutral  |  0.55 | 
+SP500    |   6825.65 | 6835.08 |  0.14% | HOLD   | 0.04 | neutral  |  0.52 | 
+NIKKEI   |  56942.69 | 57074.99 |  0.23% | HOLD   | 0.03 | neutral  |  0.52 | 
 
 
 TRADING RULES (Thresholds)
 
 DAX
-- LONG  if prob_up >= 0.56
-- SHORT if prob_up <= 0.44
-- Otherwise: HOLD
-- Note: Trendfolge, keine Trades in Neutralzone
+- n/a
 
 ATX
-- LONG  if prob_up >= 0.58
-- SHORT if prob_up <= 0.42
-- Otherwise: HOLD
-- Note: Stärkerer Filter, weniger Trades
+- n/a
 
 DOW
-- LONG  if prob_up >= 0.55
-- SHORT if prob_up <= 0.45
-- Otherwise: HOLD
-- Note: Stabil, engeres Band ok
+- n/a
 
 NASDAQ
-- LONG  if prob_up >= 0.60
-- SHORT if prob_up <= 0.40
-- Otherwise: HOLD
-- Note: Volatil → höhere Schwelle
+- n/a
 
 SP500
-- LONG  if prob_up >= 0.56
-- SHORT if prob_up <= 0.44
-- Otherwise: HOLD
-- Note: Mittlere Schwelle, breit diversifiziert
+- n/a
 
 NIKKEI
-- LONG  if prob_up >= 0.59
-- SHORT if prob_up <= 0.41
-- Otherwise: HOLD
-- Note: Trendstark, aber Gap-Risiko
-
+- n/a

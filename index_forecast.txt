@@ -1,4 +1,4 @@
-Index Forecasts – 2026-02-14 09:44 UTC
+Index Forecasts – 2026-02-14 10:39 UTC
 ==============================================================================================================
 
 Index    | Prev Close | Current | Δ %    | Conf | Regime   | ProbUp | Signal

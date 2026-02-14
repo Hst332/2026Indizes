@@ -1,101 +1,49 @@
-import yfinance as yf
-import pandas as pd
+from __future__ import annotations
 
-from model_core import model_score
-from forecast_utils import forecast_trend
-from decision_engine import decide
-from signal_guard import guard_dataframe
+from datetime import datetime
 
-
-ASSETS = [
-    ("GOLD", "GC=F", "STRONG_SUPPORT"),
-    ("SILVER", "SI=F", "NO_SUPPORT"),
-    ("NATURAL GAS", "NG=F", "STRONG_SUPPORT"),
-    ("COPPER", "HG=F", "STRONG_SUPPORT"),
-]
+from data_loader import load_market_data
+from model_core import run_model
+from decision_engine import generate_signal
+from regime_adjustment import adjust_for_regime
+from trade_filter import apply_trade_filter
 
 
-def _normalize_yfinance_df(df: pd.DataFrame) -> pd.DataFrame:
-    if isinstance(df.columns, pd.MultiIndex):
-        df.columns = df.columns.get_level_values(0)
-    return df
+def forecast_asset(asset_name: str, asset_cfg: dict, df_override=None) -> dict:
+    # Daten
+    df = df_override if df_override is not None else load_market_data(asset_cfg["ticker"], asset_cfg)
 
+    # Standardisiere Column-Names
+    df.columns = [str(c).lower() for c in df.columns]
 
-def _last_scalar(df, col):
-    v = df[col].iloc[-1]
-    if isinstance(v, pd.Series):
-        v = v.dropna().iloc[0] if not v.dropna().empty else v.iloc[0]
-    return float(v)
+    if "close" not in df.columns:
+        raise KeyError("close")
 
+    model_output = run_model(df)
+    regime = adjust_for_regime(df)
+    decision = generate_signal(model_output, regime)
 
-def forecast_asset(asset, ticker, macro_bias):
+    latest_close = float(df["close"].iloc[-1])
+    prev_close = float(df["close"].iloc[-2])
+    daily_return_pct = ((latest_close / prev_close) - 1.0) * 100.0
 
-    df = yf.download(ticker, period="6mo", interval="1d", progress=False)
-    df = _normalize_yfinance_df(df)
+    # prob_up/prob_down robust
+    prob_up = float(decision.get("prob_up", 0.5))
+    prob_down = 1.0 - prob_up
 
-    guard = guard_dataframe(asset, df)
-
-    if not guard.data_ok:
-        return {
-            "asset": asset,
-            "close": None,
-            "score": 0.0,
-            "signal": "NO_TRADE",
-            "f_1_5": 0.0,
-            "f_2_3": 0.0,
-            "gpt_1_5d": "NA",
-            "gpt_2_3w": "NA",
-            "final": "NO_TRADE(DATA)",
-            "zusatzinfo": guard.reason,
-            **guard.to_dict()
-        }
-
-    close = round(_last_scalar(df, "Close"), 1)
-
-    score = model_score(df)
-    f_1_5 = forecast_trend(df, days=5)
-    f_2_3 = forecast_trend(df, days=15)
-
-    decision = decide(
-        asset=asset,
-        score=score,
-        signal_1_5d=f_1_5,
-        signal_2_3w=f_2_3,
-        macro_bias=macro_bias
-    )
+    # Filter (Maßnahme 1-4)
+    decision = apply_trade_filter(asset_name, decision, df, daily_return_pct)
 
     return {
-        "asset": asset,
-        "close": close,
-        "score": score,
-        "signal": decision["rule_signal"],
-        "f_1_5": f_1_5,
-        "f_2_3": f_2_3,
-        "gpt_1_5d": decision["gpt_1_5d"],
-        "gpt_2_3w": decision["gpt_2_3w"],
-        "final": decision["action"],
-        "zusatzinfo": decision["zusatzinfo"],
-        **guard.to_dict()
+        "asset": asset_name,
+        "timestamp_utc": datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC"),
+        "signal": decision.get("signal", "HOLD"),
+        "confidence": float(decision.get("confidence", 0.0)),
+        "prob_up": round(prob_up, 4),
+        "prob_down": round(prob_down, 4),
+        "regime": str(regime),
+        "close": round(latest_close, 2),
+        "prev_close": round(prev_close, 2),
+        "daily_return": round(daily_return_pct, 2),
+        "rule": decision.get("rule", "no_rule"),
     }
-
-
-def run_all():
-    results = []
-    for asset, ticker, macro_bias in ASSETS:
-        try:
-            results.append(forecast_asset(asset, ticker, macro_bias))
-        except Exception as e:
-            results.append({
-                "asset": asset,
-                "close": None,
-                "score": 0.0,
-                "signal": "NO_TRADE",
-                "f_1_5": 0.0,
-                "f_2_3": 0.0,
-                "gpt_1_5d": "NA",
-                "gpt_2_3w": "NA",
-                "final": "NO_TRADE(ERROR)",
-                "zusatzinfo": str(e),
-                "data_ok": False
-            })
-    return results

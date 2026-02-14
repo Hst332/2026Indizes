@@ -3,7 +3,7 @@ name: Daily Index Forecast Engine
 on:
   schedule:
     # 07:30 Europe/Vienna = 06:30 UTC (CET, Winterzeit)
-    - cron: '30 6 * * 1-5'
+    - cron: '6 * * 1-5'
   workflow_dispatch:
 
 permissions:

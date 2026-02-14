@@ -1,32 +1,21 @@
-Index Forecasts – 2026-02-14 08:25 UTC
+Index Forecasts – 2026-02-14 09:40 UTC
 ==============================================================================================================
 
-Index    | Prev Close | Current | Δ %    | Signal | Conf | Regime   | ProbUp | Rule
------------------------------------------------------------------------------------
-DAX      |  24897.76 | 24903.35 |  0.02% | HOLD   | 0.05 | neutral  |  0.53 | 
-ATX      |   5604.43 | 5615.97 |  0.21% | BUY    | 0.30 | neutral  |  0.65 | 
-DOW      |  49404.44 | 49499.42 |  0.19% | HOLD   | 0.05 | neutral  |  0.52 | 
-NASDAQ   |  22516.24 | 22550.57 |  0.15% | HOLD   | 0.09 | neutral  |  0.55 | 
-SP500    |   6825.65 | 6835.08 |  0.14% | HOLD   | 0.04 | neutral  |  0.52 | 
-NIKKEI   |  56942.69 | 57074.99 |  0.23% | HOLD   | 0.03 | neutral  |  0.52 | 
+Index    | Prev Close | Current | Δ %    | Conf | Regime   | ProbUp | Signal
+--------------------------------------------------------------------------------------------------------------
+DAX      |   24897.76 | 24903.35 |   0.02% | 0.05 | neutral  |   0.53 | HOLD 
+ATX      |    5604.43 | 5615.97 |   0.21% | 0.30 | neutral  |   0.65 | BUY  
+DOW      |   49404.44 | 49499.42 |   0.19% | 0.05 | neutral  |   0.52 | HOLD 
+NASDAQ   |   22516.24 | 22550.57 |   0.15% | 0.09 | neutral  |   0.55 | HOLD 
+SP500    |    6825.65 | 6835.08 |   0.14% | 0.04 | neutral  |   0.52 | HOLD 
+NIKKEI   |   56942.69 | 57074.99 |   0.23% | 0.03 | neutral  |   0.52 | HOLD 
 
 
-TRADING RULES (Thresholds)
-
-DAX
-- n/a
-
-ATX
-- n/a
-
-DOW
-- n/a
-
-NASDAQ
-- n/a
-
-SP500
-- n/a
-
-NIKKEI
-- n/a
+TRADING RULES
+--------------------
+DAX     LONG >= 0.56 | SHORT <= 0.44
+ATX     LONG >= 0.58 | SHORT <= 0.42
+DOW     LONG >= 0.55 | SHORT <= 0.45
+NASDAQ  LONG >= 0.60 | SHORT <= 0.40
+SP500   LONG >= 0.56 | SHORT <= 0.44
+NIKKEI  LONG >= 0.59 | SHORT <= 0.41

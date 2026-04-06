@@ -1,4 +1,4 @@
-Index Forecasts – 2026-04-03 06:54 UTC
+Index Forecasts – 2026-04-06 07:13 UTC
 ==============================================================================================================
 
 Index    | Prev Close | Current | Δ %    | Conf | Regime   | ProbUp | Signal
@@ -8,7 +8,7 @@ ATX      |    5447.07 | 5446.63 |  -0.01% | 0.16 | neutral  |   0.58 | BUY
 DOW      |   46464.06 | 46504.51 |   0.09% | 0.12 | neutral  |   0.44 | SELL 
 NASDAQ   |   21811.98 | 21874.19 |   0.29% | 0.17 | neutral  |   0.42 | SELL 
 SP500    |    6568.29 | 6581.56 |   0.20% | 0.14 | neutral  |   0.43 | SELL 
-NIKKEI   |   53137.82 | 53228.37 |   0.17% | 0.03 | neutral  |   0.52 | HOLD 
+NIKKEI   |   53585.49 | 53512.92 |  -0.14% | 0.02 | neutral  |   0.51 | HOLD 
 
 
 TRADING RULES
